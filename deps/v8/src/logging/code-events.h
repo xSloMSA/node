@@ -28,6 +28,7 @@ class WasmCode;
 using WasmName = Vector<const char>;
 }  // namespace wasm
 
+// clang-format off
 #define LOG_EVENTS_LIST(V)                             \
   V(CODE_CREATION_EVENT, code-creation)                \
   V(CODE_DISABLE_OPT_EVENT, code-disable-optimization) \
@@ -36,22 +37,23 @@ using WasmName = Vector<const char>;
   V(CODE_MOVING_GC, code-moving-gc)                    \
   V(SHARED_FUNC_MOVE_EVENT, sfi-move)                  \
   V(SNAPSHOT_CODE_NAME_EVENT, snapshot-code-name)      \
-  V(TICK_EVENT, tick)
+  V(TICK_EVENT, tick)                                  \
+  V(BYTECODE_FLUSH_EVENT, bytecode-flush)
+// clang-format on
 
-#define TAGS_LIST(V)                               \
-  V(BUILTIN_TAG, Builtin)                          \
-  V(CALLBACK_TAG, Callback)                        \
-  V(EVAL_TAG, Eval)                                \
-  V(FUNCTION_TAG, Function)                        \
-  V(INTERPRETED_FUNCTION_TAG, InterpretedFunction) \
-  V(HANDLER_TAG, Handler)                          \
-  V(BYTECODE_HANDLER_TAG, BytecodeHandler)         \
-  V(LAZY_COMPILE_TAG, LazyCompile)                 \
-  V(REG_EXP_TAG, RegExp)                           \
-  V(SCRIPT_TAG, Script)                            \
-  V(STUB_TAG, Stub)                                \
-  V(NATIVE_FUNCTION_TAG, Function)                 \
-  V(NATIVE_LAZY_COMPILE_TAG, LazyCompile)          \
+#define TAGS_LIST(V)                       \
+  V(BUILTIN_TAG, Builtin)                  \
+  V(CALLBACK_TAG, Callback)                \
+  V(EVAL_TAG, Eval)                        \
+  V(FUNCTION_TAG, Function)                \
+  V(HANDLER_TAG, Handler)                  \
+  V(BYTECODE_HANDLER_TAG, BytecodeHandler) \
+  V(LAZY_COMPILE_TAG, LazyCompile)         \
+  V(REG_EXP_TAG, RegExp)                   \
+  V(SCRIPT_TAG, Script)                    \
+  V(STUB_TAG, Stub)                        \
+  V(NATIVE_FUNCTION_TAG, Function)         \
+  V(NATIVE_LAZY_COMPILE_TAG, LazyCompile)  \
   V(NATIVE_SCRIPT_TAG, Script)
 // Note that 'NATIVE_' cases for functions and scripts are mapped onto
 // original tags when writing to the log.
@@ -106,6 +108,8 @@ class CodeEventListener {
   virtual void CodeDependencyChangeEvent(Handle<Code> code,
                                          Handle<SharedFunctionInfo> shared,
                                          const char* reason) = 0;
+  // Invoked during GC. No allocation allowed.
+  virtual void BytecodeFlushEvent(Address compiled_data_start) = 0;
 
   virtual bool is_listening_to_code_events() { return false; }
 };
@@ -230,6 +234,11 @@ class CodeEventDispatcher : public CodeEventListener {
                                  const char* reason) override {
     DispatchEventToListeners([=](CodeEventListener* listener) {
       listener->CodeDependencyChangeEvent(code, sfi, reason);
+    });
+  }
+  void BytecodeFlushEvent(Address compiled_data_start) override {
+    DispatchEventToListeners([=](CodeEventListener* listener) {
+      listener->BytecodeFlushEvent(compiled_data_start);
     });
   }
 

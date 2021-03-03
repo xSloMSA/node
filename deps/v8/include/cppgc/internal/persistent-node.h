@@ -30,6 +30,7 @@ class PersistentNode final {
   PersistentNode& operator=(const PersistentNode&) = delete;
 
   void InitializeAsUsedNode(void* owner, TraceCallback trace) {
+    CPPGC_DCHECK(trace);
     owner_ = owner;
     trace_ = trace;
   }
@@ -89,24 +90,32 @@ class V8_EXPORT PersistentRegion final {
     }
     PersistentNode* node = free_list_head_;
     free_list_head_ = free_list_head_->FreeListNext();
+    CPPGC_DCHECK(!node->IsUsed());
     node->InitializeAsUsedNode(owner, trace);
+    nodes_in_use_++;
     return node;
   }
 
   void FreeNode(PersistentNode* node) {
+    CPPGC_DCHECK(node->IsUsed());
     node->InitializeAsFreeNode(free_list_head_);
     free_list_head_ = node;
+    CPPGC_DCHECK(nodes_in_use_ > 0);
+    nodes_in_use_--;
   }
 
   void Trace(Visitor*);
 
   size_t NodesInUse() const;
 
+  void ClearAllUsedNodes();
+
  private:
   void EnsureNodeSlots();
 
   std::vector<std::unique_ptr<PersistentNodeSlots>> nodes_;
   PersistentNode* free_list_head_ = nullptr;
+  size_t nodes_in_use_ = 0;
 };
 
 // CrossThreadPersistent uses PersistentRegion but protects it using this lock
@@ -115,6 +124,8 @@ class V8_EXPORT PersistentRegionLock final {
  public:
   PersistentRegionLock();
   ~PersistentRegionLock();
+
+  static void AssertLocked();
 };
 
 }  // namespace internal

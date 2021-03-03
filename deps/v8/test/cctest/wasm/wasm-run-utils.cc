@@ -335,6 +335,7 @@ Handle<WasmInstanceObject> TestingModuleBuilder::InitInstanceObject() {
   auto native_module = isolate_->wasm_engine()->NewNativeModule(
       isolate_, enabled_features_, test_module_, code_size_estimate);
   native_module->SetWireBytes(OwnedVector<const uint8_t>());
+  native_module->compilation_state()->set_compilation_id(0);
   constexpr Vector<const char> kNoSourceUrl{"", 0};
   Handle<Script> script = isolate_->wasm_engine()->GetOrCreateScript(
       isolate_, native_module, kNoSourceUrl);
@@ -358,16 +359,18 @@ void TestBuildingGraphWithBuilder(compiler::WasmGraphBuilder* builder,
                                   const byte* start, const byte* end) {
   WasmFeatures unused_detected_features;
   FunctionBody body(sig, 0, start, end);
+  std::vector<compiler::WasmLoopInfo> loops;
   DecodeResult result =
       BuildTFGraph(zone->allocator(), WasmFeatures::All(), nullptr, builder,
-                   &unused_detected_features, body, nullptr);
+                   &unused_detected_features, body, &loops, nullptr);
   if (result.failed()) {
 #ifdef DEBUG
     if (!FLAG_trace_wasm_decoder) {
       // Retry the compilation with the tracing flag on, to help in debugging.
       FLAG_trace_wasm_decoder = true;
-      result = BuildTFGraph(zone->allocator(), WasmFeatures::All(), nullptr,
-                            builder, &unused_detected_features, body, nullptr);
+      result =
+          BuildTFGraph(zone->allocator(), WasmFeatures::All(), nullptr, builder,
+                       &unused_detected_features, body, &loops, nullptr);
     }
 #endif
 
