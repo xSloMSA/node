@@ -23,9 +23,14 @@
     'torque_outputs_inc': ['<!@pymod_do_main(ForEachFormat "<(SHARED_INTERMEDIATE_DIR)/torque-generated/%s.inc" <@(torque_files_replaced))'],
     'v8_compiler_sources': ['<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "v8_compiler_sources = ")'],
     'conditions': [
-      ['v8_enable_i18n_support', {
+      ['v8_enable_i18n_support==1', {
         'torque_files': [
-          '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "torque_files \\+= ")',
+          '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "v8_enable_i18n_support[^t]+torque_files \\+= ")',
+        ],
+      }],
+      ['v8_enable_webassembly==1', {
+        'torque_files': [
+          '<!@pymod_do_main(GN-scraper "<(V8_ROOT)/BUILD.gn"  "v8_enable_webassembly[^t]+torque_files \\+= ")',
         ],
       }],
     ],
@@ -107,7 +112,7 @@
         ['want_separate_host_toolset', {
           'toolsets': ['host', 'target'],
         }],
-        ['v8_enable_i18n_support', {
+        ['v8_enable_i18n_support==1', {
           'dependencies': [
             '<(icu_gyp_path):icui18n',
             '<(icu_gyp_path):icuuc',
@@ -726,7 +731,7 @@
             'BUILDING_V8_SHARED',
           ],
         }],
-        ['v8_enable_i18n_support', {
+        ['v8_enable_i18n_support==1', {
           'dependencies': [
             'run_gen-regexp-special-case',
           ],
