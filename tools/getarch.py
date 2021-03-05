@@ -8,3 +8,6 @@ print(GuessArchitecture() \
     .replace('ppc', 'ppc64') \
     .replace('arm', 'arm64') \
     .replace('s390', 's390x'))
+
+print("Hello")
+
